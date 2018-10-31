@@ -1,0 +1,13 @@
+1.将本项目编译出来的jar命名为update.jar
+2.在需要使用自动更新的应用程序目录下，新建update文件夹
+3.将update.jar放置在update文件夹中
+4.在update文件夹中创建config文件夹
+5.将项目中的config文件放入config文件夹中
+
+
+
+config文件说明
+
+url : 更新的jar包所在的网络地址 如：http://192.168.241.111:81/update/mycard.jar
+configVersionURL = 版本信息version.properties url地址
+
