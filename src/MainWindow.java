@@ -24,14 +24,21 @@ public class MainWindow {
         String jarName;
         char i = 'a';
         JarURLConnection jarConnection = null;
+        //部署到项目中时需要修改为./update/config/config.properties
         String configFile = "./config/config.properties";
+        String configVersionURL;
+        String configVersionFile = "./update/version.properties";
 
 
         try {
-            properties.load(
-                    new InputStreamReader(new FileInputStream(new File(configFile).getAbsolutePath()), "UTF-8"));
-            ServerURL = properties.getProperty("url");
-            jarName = properties.getProperty("jarname");
+            String path = new File(configFile).getAbsolutePath();
+            System.out.println("配置文件路径:"+path);
+
+            properties.load(new InputStreamReader(new FileInputStream(path), "UTF-8"));
+            System.out.println(properties);
+            ServerURL = properties.getProperty("url").trim();
+            jarName = ServerURL.split("/")[ServerURL.split("/").length-1];
+            configVersionURL = properties.getProperty("configVersionURL").trim();
         } catch (IOException e) {
             System.out.println("读取更新配置文件失败");
             e.printStackTrace();
@@ -51,6 +58,7 @@ public class MainWindow {
         System.out.println("正在检查更新……");
         try {
             //检查本地文件的版本信息
+            System.out.println("本地文件目录:"+"./lib/"+jarName);
             JarFile localJarFile = new JarFile("./lib/"+jarName);
             localVersion = localJarFile.getManifest().getMainAttributes().getValue("Manifest-Version");
             localJarFile.close();
@@ -61,19 +69,32 @@ public class MainWindow {
         }
 
         try {
-            // 检查服务器上的文件信息，查看是否有更新
-            URL url = new URL("jar:"+ServerURL+"!/");
-            jarConnection = (JarURLConnection)url.openConnection();
-            jarConnection.setConnectTimeout(1);
-            jarConnection.setReadTimeout(1);
-            Manifest manifest = jarConnection.getManifest();
-            serverVision = manifest.getMainAttributes().getValue("Manifest-Version");
+            System.out.println("版本文件下载链接:"+configVersionURL);
+            FileTool.downloadByNIO2(configVersionURL,"./update", "version.properties");
+            properties.load(
+                    new InputStreamReader(new FileInputStream(new File(configVersionFile).getAbsolutePath()), "UTF-8"));
+            serverVision = properties.getProperty(properties.getProperty("jarname").split("\\.")[0]).trim();
             System.out.println("最新版本："+serverVision);
-        } catch (IOException e) {
+        }catch (Exception e){
             System.out.println("加载更新失败……请检查网络后再试!");
-            System.out.println("url:"+e.getMessage());
+            e.printStackTrace();
             return;
         }
+
+//        try {
+//            // 检查服务器上的文件信息，查看是否有更新
+//            URL url = new URL("jar:"+ServerURL+"!/");
+//            jarConnection = (JarURLConnection)url.openConnection();
+//            jarConnection.setConnectTimeout(1);
+//            jarConnection.setReadTimeout(1);
+//            Manifest manifest = jarConnection.getManifest();
+//            serverVision = manifest.getMainAttributes().getValue("Manifest-Version");
+//            System.out.println("最新版本："+serverVision);
+//        } catch (IOException e) {
+//            System.out.println("加载更新失败……请检查网络后再试!");
+//            System.out.println("url:"+e.getMessage());
+//            return;
+//        }
 
         if (!localVersion.equals("")){
             if(localVersion.equals(serverVision)){
@@ -90,12 +111,18 @@ public class MainWindow {
                     if(i=='y'){
                         break;
                     }else if(i=='n')
-                        return;
+                    {return;}
                 }
             }
         }
         System.out.println("下载中……请稍后……");
-        FileTool.downloadByNIO2(ServerURL,"./lib", jarName);
-        System.out.println("更新成功...");
+        System.out.println("下载链接:"+ServerURL);
+        try {
+            FileTool.downloadByNIO2(ServerURL,"./lib", jarName);
+            System.out.println("更新成功...");
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println("下载更新文件失败");
+        }
     }
 }
